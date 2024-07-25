@@ -1,12 +1,10 @@
-FROM tomcat:8.0-alpine
+FROM maven:3.9.0-eclipse-temurin-17 as build
+WORKDIR /app
+COPY . .
+RUN mvn clean install
 
-MAINTAINER Hari harichowdary.java@gmail.com
-
-
-
-WORKDIR /usr/local/tomcat
-
-COPY ./java-tomcat-maven-example.war /usr/local/tomcat/webapps
-
+FROM eclipse-temurin:17.0.6_10-jdk
+WORKDIR /app
+COPY --from=build /app/target/demoapp.jar /app/
 EXPOSE 8080
-CMD ["catalina.sh", "run"]
+CMD ["java", "-jar","demoapp.jar"]
