@@ -1,40 +1,48 @@
-pipeline{
-    agent{
-        label "jenkins-agent"
-    }
-    tools {
-        jdk 'Java17'
-        maven 'Maven3'
-    }
-    environment {
-        APP_NAME = "complete-prodcution-e2e-pipeline"
-        RELEASE = "1.0.0"
-        DOCKER_USER = "abdulazeez5"
-        DOCKER_PASS = 'docker'
-        IMAGE_NAME = "${abdulazeez5}" + "/" + "${practice}"
-        IMAGE_TAG = "${prep}-${BUILD_NUMBER}"
-        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+pipeline {
+    agent any
 
+    environment {
+        DOCKER_IMAGE = 'your-docker-image-name'
+        REPO_URL = 'https://github.com/your-repo.git'
+        EC2_INSTANCE = 'your-ec2-instance-id'
     }
-    stages{
-        stage('checkout'){
-            steps{
-                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/abdulazeez5/practice.git']])
-            }
-        }
-         stage ('maven compile') {
+
+    stages {
+        stage('Clone Repository') {
             steps {
-                sh 'mvn clean compile'
+                git url: "${REPO_URL}"
             }
         }
-        stage ('maven Test') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'mvn test'
+                script {
+                    docker.build("${DOCKER_IMAGE}")
+                }
             }
         }
-        stage('build'){
-            steps{
-                sh 'mvn package'
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
+                        docker.image("${DOCKER_IMAGE}").push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                script {
+                    sh """
+                    aws ec2 start-instances --instance-ids ${EC2_INSTANCE}
+                    ssh -o StrictHostKeyChecking=no ec2-user@${EC2_INSTANCE} << EOF
+                    docker pull ${DOCKER_IMAGE}
+                    docker run -d -p 80:80 ${DOCKER_IMAGE}
+                    EOF
+                    """
+                }
             }
         }
     }
