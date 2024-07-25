@@ -2,22 +2,22 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'your-docker-image-name'
-        REPO_URL = 'https://github.com/your-repo.git'
-        EC2_INSTANCE = 'your-ec2-instance-id'
+        DOCKER_IMAGE = 'practice'
+        REPO_URL = 'https://github.com/abdulazeez5/practice.git'
+        EC2_INSTANCE = 'i-0a9ebcb74426f8e94'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git url: "${REPO_URL}"
+                git url: "${https://github.com/abdulazeez5/practice.git}"
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}")
+                    docker.build("${practice}")
                 }
             }
         }
@@ -25,8 +25,8 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        docker.image("${DOCKER_IMAGE}").push()
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        docker.image("${practice}").push()
                     }
                 }
             }
@@ -35,13 +35,8 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 script {
-                    sh """
-                    aws ec2 start-instances --instance-ids ${EC2_INSTANCE}
-                    ssh -o StrictHostKeyChecking=no ec2-user@${EC2_INSTANCE} << EOF
-                    docker pull ${DOCKER_IMAGE}
-                    docker run -d -p 80:80 ${DOCKER_IMAGE}
-                    EOF
-                    """
+                   sh docker pull ${DOCKER_IMAGE}
+                   sh docker run -d -p 80:80 ${DOCKER_IMAGE}
                 }
             }
         }
