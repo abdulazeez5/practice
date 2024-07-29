@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
-FROM scratch
-ADD hello /
-CMD ["/hello"]
+FROM tomcat:8-jre8 
+MAINTAINER "Vcube"
+
+EXPOSE 8085
